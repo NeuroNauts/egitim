@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "260188162127",
+    "project_id": "egitim2-e4553",
+    "storage_bucket": "egitim2-e4553.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:260188162127:android:0c9aad736bc0d6729e823a",
+        "android_client_info": {
+          "package_name": "com.example.egitim2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-_uOgekh9CpUNNBPZOR2D5qwwBXNjEbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:260188162127:android:3742f5a6cb0bbb0d9e823a",
+        "android_client_info": {
+          "package_name": "com.neuronauts.egitim2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-_uOgekh9CpUNNBPZOR2D5qwwBXNjEbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
