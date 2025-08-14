@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart'; // audioplayers'ı import edin
+import 'package:audioplayers/audioplayers.dart';
+import 'package:url_launcher/url_launcher.dart'; // url_launcher'ı import ettik
 
 class PomodoroPage extends StatefulWidget {
   const PomodoroPage({super.key});
@@ -134,13 +135,12 @@ class _PomodoroPageState extends State<PomodoroPage> with SingleTickerProviderSt
   void dispose() {
     _timer?.cancel();
     _animationController.dispose();
-    _audioPlayer.dispose(); // AudioPlayer'ı dispose edin
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Arayüz kodunuz aynı kalacak, sadece `Stack` içindeki `Column` widget'ı `Text` ile değiştirilmiştir.
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pomodoro Zamanlayıcı', style: TextStyle(color: Colors.white)),
@@ -271,6 +271,9 @@ class _PomodoroPageState extends State<PomodoroPage> with SingleTickerProviderSt
                   ),
                 ],
               ),
+              const SizedBox(height: 40),
+              // Spotify butonunu buraya ekliyoruz
+              SpotifyPlaylistButton(),
               const SizedBox(height: 40),
               Expanded(
                 child: ListView(
@@ -457,5 +460,48 @@ class TimerPainter extends CustomPainter {
     return animation.value != oldDelegate.animation.value ||
         backgroundColor != oldDelegate.backgroundColor ||
         progressColor != oldDelegate.progressColor;
+  }
+}
+
+// --- Spotify Playlist Butonu ---
+class SpotifyPlaylistButton extends StatelessWidget {
+  // Bu URL'i kendi çalma listenizin URL'i ile güncelleyin
+  final String playlistUrl = "https://open.spotify.com/playlist/0oPyDVNdgcPFAWmOYSK7O1"; // Örnek URL
+
+  void openSpotify() async {
+    final uri = Uri.parse(playlistUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      // Eğer Spotify uygulaması yoksa tarayıcıda açmayı deneyebiliriz
+      if (await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+        print("Spotify tarayıcıda açıldı.");
+      } else {
+        print("Spotify açılamıyor!");
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: openSpotify,
+      icon: Image.asset(
+        'assets/images/spotify_logo.png', // Spotify logo dosyasını kullanıyoruz
+        height: 24,
+      ),
+      label: const Text(
+        "Spotify'da Müzik Aç",
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green.shade600,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+        elevation: 5,
+      ),
+    );
   }
 }
