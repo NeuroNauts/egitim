@@ -1,4 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// Channel verilerini tutmak için model sınıfı
+class Channel {
+  final String name;
+  final String branch;
+  final String link;
+  final String? profileImageUrl;
+
+  Channel({
+    required this.name,
+    required this.branch,
+    required this.link,
+    this.profileImageUrl,
+  });
+
+  factory Channel.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    return Channel(
+      name: data['name'] ?? '',
+      branch: data['branch'] ?? '',
+      link: data['link'] ?? '',
+      profileImageUrl: data['profileImage'], // Firebase'den doğrudan çekiyoruz
+    );
+  }
+}
 
 class HocaOnerisiPage extends StatefulWidget {
   const HocaOnerisiPage({super.key});
@@ -9,58 +36,18 @@ class HocaOnerisiPage extends StatefulWidget {
 
 class _HocaOnerisiPageState extends State<HocaOnerisiPage> {
   String? _selectedSubject = 'Matematik';
-  String? _selectedDifficulty = 'Kolay';
-  List<String> _recommendations = [];
-
-  // Örnek hoca önerileri verisi.
-  // Bu veriyi internetteki kaynaklardan (YouTube, eğitim platformları vb.)
-  // topladığınız gerçek hoca isimleriyle doldurabilirsiniz.
-  final Map<String, Map<String, List<String>>> _sourceRecommendations = {
-    'Matematik': {
-      'Kolay': ['Mert Hoca', 'İlyas Güneş','Sağlam Matematik','MatAkademi','Kampüs'],
-      'Orta': ['Bıyıklı Matematik', 'Matematiğin Fatihi','Ceyhun Hoca','Rehber Matematik', 'Hocalara Geldik','Benim Hocam','Kenan Kara ile Geometri','Nurtaç Hoca'],
-      'Zor': ['Şenol Hoca', 'Tunç Kurt','Rehber Matematik (ileri kısımları)','Bazı Kenan Kara dersleri (geometri ispat ağırlıklı)'],
-    },
-    'Fizik': {
-      'Kolay': ['Barış Akıncıoğlu', 'Barıştıran Matematik', 'Tolga Bilgin Fizik'],
-      'Orta': ['Umut Öncül Akademi', 'Fizikle Barış', 'VIP Fizik', 'Hocalara Geldik', 'Benim Hocam'],
-      'Zor': ['Ümit Öncül (yoğun teori)', 'bazı Umut Öncül dersleri (özellikle AYT konu derinlikleri)'],
-    },
-    'Kimya': {
-      'Kolay': [ 'Kimya Adası', 'Bebar Bilim', 'Ferrum'],
-      'Orta': ['Kimya Özel', 'Kimyacı Gülçin Hoca', 'Hocalara Geldik', 'Benim Hocam', 'Khan Academy Türkçe'],
-      'Zor': ['Evrim Ağacı (kimya içeren bilimsel içerikler), bazı Kimya Özel dersleri (üniversite düzeyine yakın konular)'],
-    },
-    'Biyoloji': {
-      'Kolay': ['Cici Biyoloji', 'Gıcık Biyoloji', 'Yakışıklı Sorular'],
-      'Orta': ['Selin Hoca', 'FUNDAmentals Biyoloji', 'Senin Biyolojin', 'Hocalara Geldik', 'Benim Hocam'],
-      'Zor': ['Khan Academy Türkçe (detaylı biyoloji dersleri)', 'Evrim Ağacı (biyoloji-kimya-tarih kesişimi derin içerikler)'],
-    },
-
-    'Türkçe/Edebiyat': {
-      'Kolay': ['Eyüp Hoca’yla Türkçe ve Edebiyat', 'Nazlı Hoca’m', 'Kampüs (Tonguç Akademi)', 'Açık Lise TV'],
-      'Orta': [ 'Harun Ardıç', 'Rüştü Hoca Edebiyat Anlatıyor', 'Fulya Hoca', 'Benim Hocam', 'Hocalara Geldik'],
-      'Zor': ['YOK'],
-    },
-
-    'Tarih & Coğrafya': {
-      'Kolay': ['Basit Tarih', 'Sosyal Kale', 'CrashCourse'],
-      'Orta': [ 'OK Tarih', 'Hocalara Geldik', 'Benim Hocam', 'Kampüs', 'KR Akademi', 'Khan Academy Türkçe'],
-      'Zor': ['Evrim Ağacı (tarihsel bilim içerikleri)', 'Bazı Khan Academy Türkçe dersleri (dünya tarihi detaylı), CrashCourse (hızlı ve yoğun tempo)'],
-    },
-  };
-
-  void _getRecommendations() {
-    setState(() {
-      _recommendations = _sourceRecommendations[_selectedSubject]![_selectedDifficulty] ?? [];
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _getRecommendations(); // Sayfa açıldığında ilk önerileri listeler
-  }
+  final List<String> _subjects = [
+    'Matematik',
+    'Geometri',
+    'Fizik',
+    'Kimya',
+    'Biyoloji',
+    'Edebiyat',
+    'Tarih',
+    'Din',
+    'Felsefe',
+    'Coğrafya'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -105,30 +92,12 @@ class _HocaOnerisiPageState extends State<HocaOnerisiPage> {
                 border: OutlineInputBorder(),
               ),
               value: _selectedSubject,
-              items: _sourceRecommendations.keys.map((String value) {
+              items: _subjects.map((String value) {
                 return DropdownMenuItem<String>(value: value, child: Text(value));
               }).toList(),
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedSubject = newValue;
-                  _getRecommendations();
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Zorluk Seviyesi Seçin',
-                border: OutlineInputBorder(),
-              ),
-              value: _selectedDifficulty,
-              items: ['Kolay', 'Orta', 'Zor'].map((String value) {
-                return DropdownMenuItem<String>(value: value, child: Text(value));
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedDifficulty = newValue;
-                  _getRecommendations();
                 });
               },
             ),
@@ -154,34 +123,103 @@ class _HocaOnerisiPageState extends State<HocaOnerisiPage> {
               ),
               const Divider(height: 20, thickness: 1),
               Expanded(
-                child: _recommendations.isEmpty
-                    ? const Center(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('channels')
+                      .where('branch', isEqualTo: _selectedSubject)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Bir hata oluştu.'));
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
                         child: Text(
-                          'Bu ders ve seviye için öneri bulunamadı.',
+                          'Bu ders için öneri bulunamadı.',
                           style: TextStyle(fontSize: 16, color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: _recommendations.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      );
+                    }
+
+                    final recommendations = snapshot.data!.docs
+                        .map((doc) => Channel.fromFirestore(doc))
+                        .toList();
+
+                    return ListView.builder(
+                      itemCount: recommendations.length,
+                      itemBuilder: (context, index) {
+                        final channel = recommendations[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: InkWell(
+                            onTap: () async {
+                              final url = Uri.parse(channel.link);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Link açılamıyor.')),
+                                );
+                              }
+                            },
                             child: Row(
                               children: [
-                                const Icon(Icons.person, color: Colors.blueAccent),
-                                const SizedBox(width: 10),
+                                // Kapak fotoğrafı için widget
+                                if (channel.profileImageUrl != null && channel.profileImageUrl!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 12.0),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Image.network(
+                                        channel.profileImageUrl!,
+                                        width: 40,
+                                        height: 40,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return SizedBox(
+                                            width: 40,
+                                            height: 40,
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                value: loadingProgress.expectedTotalBytes != null
+                                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                    : null,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(Icons.person, color: Colors.blueAccent, size: 40);
+                                        },
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 12.0),
+                                    child: Icon(Icons.person, color: Colors.blueAccent, size: 40),
+                                  ),
                                 Expanded(
                                   child: Text(
-                                    '${index + 1}. ${_recommendations[index]}',
+                                    '${index + 1}. ${channel.name}',
                                     style: const TextStyle(fontSize: 16),
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),
