@@ -44,7 +44,7 @@ class _HocaOnerisiPageState extends State<HocaOnerisiPage> {
     'Biyoloji',
     'Edebiyat',
     'Tarih',
-    'Din',
+    'Din Kültürü',
     'Felsefe',
     'Coğrafya'
   ];
