@@ -1,4 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// Kaynak (Kitap) verilerini tutmak için model sınıfı
+class Kaynak {
+  final String category;
+  final String productUrl;
+  final String title;
+  final String publisher;
+  final String authors;
+  final String imageUrl;
+  final String branch;
+
+  Kaynak({
+    required this.category,
+    required this.productUrl,
+    required this.title,
+    required this.publisher,
+    required this.authors,
+    required this.imageUrl,
+    required this.branch,
+  });
+
+  factory Kaynak.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    return Kaynak(
+      category: data['category'] ?? '',
+      productUrl: data['product_url'] ?? '',
+      title: data['title'] ?? '',
+      publisher: data['publisher'] ?? '',
+      authors: data['authors'] ?? '',
+      imageUrl: data['image_urls'] ?? '',
+      branch: data['branch'] ?? '',
+    );
+  }
+}
 
 class KaynakOnerisiPage extends StatefulWidget {
   const KaynakOnerisiPage({super.key});
@@ -8,45 +44,38 @@ class KaynakOnerisiPage extends StatefulWidget {
 }
 
 class _KaynakOnerisiPageState extends State<KaynakOnerisiPage> {
-  String? _selectedSubject = 'Matematik';
-  String? _selectedDifficulty = 'Kolay';
-  List<String> _recommendations = [];
+  String? _selectedBranch = 'Matematik';
+  String? _selectedCategory = 'Tümü';
+  String? _selectedPublisher = 'Tümü'; // Yeni state değişkeni
+  String _searchQuery = '';
 
-  // Örnek kitap önerileri verisi.
-  // Bu kısmı internetten topladığınız gerçek verilerle doldurabilirsiniz.
-  final Map<String, Map<String, List<String>>> _sourceRecommendations = {
-    'Matematik': {
-      'Kolay': ['Antrenmanlarla Matematik', 'Karekök Yayınları MPS'],
-      'Orta': ['Acil Matematik', '3D Yayınları', 'Limit Yayınları'],
-      'Zor': ['Bilgi Sarmal Matematik', 'Çap Yayınları', 'Orijinal Yayınları'],
-    },
-    'Fizik': {
-      'Kolay': ['Limit Yayınları MPS', 'Palme Yayınları'],
-      'Orta': ['Esen Yayınları', 'Çap Yayınları Fasikülleri'],
-      'Zor': ['Nihat Bilgin Yayınları', '3D Yayınları Fizik'],
-    },
-    'Kimya': {
-      'Kolay': ['Palme Yayınları', 'Fen Bilimleri Yayınları'],
-      'Orta': ['Aydın Yayınları', ' orbital Yayınları'],
-      'Zor': ['Miray Yayınları', 'Bilgi Sarmal Kimya'],
-    },
-    'Biyoloji': {
-      'Kolay': ['Palme Yayınları', 'Biyotik Yayınları'],
-      'Orta': ['Limit Yayınları', 'Çap Yayınları'],
-      'Zor': ['Apodemi Yayınları', '3D Yayınları'],
-    },
-  };
+  final TextEditingController _searchController = TextEditingController();
 
-  void _getRecommendations() {
-    setState(() {
-      _recommendations = _sourceRecommendations[_selectedSubject]![_selectedDifficulty] ?? [];
-    });
-  }
+  final List<String> _branches = [
+    'Matematik', 'Geometri', 'Fizik', 'Kimya', 'Biyoloji', 'Edebiyat',
+    'Tarih', 'Din', 'Felsefe', 'Coğrafya'
+  ];
+
+  final List<String> _categories = [
+    'Tümü', 'AYT Konu Anlatım', 'AYT Soru Bankası', 'TYT Konu Anlatım', 'TYT Soru Bankası'
+  ];
 
   @override
   void initState() {
     super.initState();
-    _getRecommendations(); // Sayfa açıldığında ilk önerileri listeler
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+        _selectedPublisher = 'Tümü'; // Arama değiştiğinde yayınevini sıfırla
+        _selectedCategory = 'Tümü'; // Arama değiştiğinde kategoriyi sıfırla
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -87,36 +116,71 @@ class _KaynakOnerisiPageState extends State<KaynakOnerisiPage> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Konu Seçin',
-                border: OutlineInputBorder(),
-              ),
-              value: _selectedSubject,
-              items: _sourceRecommendations.keys.map((String value) {
-                return DropdownMenuItem<String>(value: value, child: Text(value));
-              }).toList(),
+              decoration: const InputDecoration(labelText: 'Ders Seçin', border: OutlineInputBorder()),
+              value: _selectedBranch,
+              items: _branches.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
               onChanged: (String? newValue) {
                 setState(() {
-                  _selectedSubject = newValue;
-                  _getRecommendations();
+                  _selectedBranch = newValue;
+                  _selectedCategory = 'Tümü';
+                  _selectedPublisher = 'Tümü'; // Ders değiştiğinde yayınevini sıfırla
+                  _searchController.clear();
                 });
               },
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            TextField(
+              controller: _searchController,
               decoration: const InputDecoration(
-                labelText: 'Zorluk Seviyesi Seçin',
+                labelText: 'Kitap veya yazar ara...',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search),
               ),
-              value: _selectedDifficulty,
-              items: ['Kolay', 'Orta', 'Zor'].map((String value) {
-                return DropdownMenuItem<String>(value: value, child: Text(value));
-              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Kategori Seçin', border: OutlineInputBorder()),
+              value: _selectedCategory,
+              items: _categories.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
               onChanged: (String? newValue) {
                 setState(() {
-                  _selectedDifficulty = newValue;
-                  _getRecommendations();
+                  _selectedCategory = newValue;
                 });
+              },
+            ),
+            const SizedBox(height: 16),
+            // Yayınevi filtreleme menüsü
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('books')
+                  .where('branch', isEqualTo: _selectedBranch)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const SizedBox();
+                }
+
+                // Dinamik yayınevi listesini oluştur
+                // Dinamik yayınevi listesini oluştur
+                final allPublishers = snapshot.data!.docs
+                    .map((doc) => doc['publisher'])
+                    .where((publisher) => publisher != null) // publisher'ı null olmayanları filtrele
+                    .cast<String>() // Kalanları String'e dönüştür
+                    .toSet()
+                    .toList();
+                allPublishers.sort();
+                allPublishers.insert(0, 'Tümü');
+
+                return DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Yayınevi Seçin', border: OutlineInputBorder()),
+                  value: _selectedPublisher,
+                  items: allPublishers.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedPublisher = newValue;
+                    });
+                  },
+                );
               },
             ),
           ],
@@ -136,39 +200,100 @@ class _KaynakOnerisiPageState extends State<KaynakOnerisiPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Kitap Önerileri',
+                'Kaynak Önerileri',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
               const Divider(height: 20, thickness: 1),
               Expanded(
-                child: _recommendations.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Bu konu ve seviye için öneri bulunamadı.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _recommendations.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('books')
+                      .where('branch', isEqualTo: _selectedBranch)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Bir hata oluştu.'));
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('Bu ders için öneri bulunamadı.'));
+                    }
+
+                    final allBooks = snapshot.data!.docs.map((doc) => Kaynak.fromFirestore(doc)).toList();
+
+                    final filteredBooks = allBooks.where((kaynak) {
+                      final matchesCategory = _selectedCategory == 'Tümü' || kaynak.category == _selectedCategory;
+                      final matchesPublisher = _selectedPublisher == 'Tümü' || kaynak.publisher == _selectedPublisher;
+                      final matchesSearch = _searchQuery.isEmpty ||
+                          kaynak.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                          kaynak.authors.toLowerCase().contains(_searchQuery.toLowerCase());
+                      return matchesCategory && matchesPublisher && matchesSearch;
+                    }).toList();
+
+                    if (filteredBooks.isEmpty) {
+                      return const Center(child: Text('Aradığınız kriterlere uygun kaynak bulunamadı.'));
+                    }
+
+                    return ListView.builder(
+                      itemCount: filteredBooks.length,
+                      itemBuilder: (context, index) {
+                        final kaynak = filteredBooks[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: InkWell(
+                            onTap: () async {
+                              final url = Uri.parse(kaynak.productUrl);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Ürün sayfasına gidilemiyor.')),
+                                );
+                              }
+                            },
                             child: Row(
                               children: [
-                                const Icon(Icons.book, color: Colors.blueAccent),
-                                const SizedBox(width: 10),
+                                if (kaynak.imageUrl.isNotEmpty)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    child: Image.network(
+                                      kaynak.imageUrl,
+                                      width: 60,
+                                      height: 90,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(Icons.menu_book, color: Colors.blueAccent, size: 60);
+                                      },
+                                    ),
+                                  ),
+                                const SizedBox(width: 16),
                                 Expanded(
-                                  child: Text(
-                                    '${index + 1}. ${_recommendations[index]}',
-                                    style: const TextStyle(fontSize: 16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        kaynak.title,
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text('Yazar: ${kaynak.authors}', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                      Text('Yayınevi: ${kaynak.publisher}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                                      Text('Kategori: ${kaynak.category}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),
