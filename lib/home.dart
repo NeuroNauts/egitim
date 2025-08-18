@@ -3,7 +3,8 @@ import 'program.dart'; // ProgramPage'inizin burada olduğunu varsayıyorum
 import 'pomodoro.dart'; // PomodoroPage'inizin burada olduğunu varsayıyorum
 import 'rehberlik.dart'; // RehberlikPage'inizin burada olduğunu varsayıyorum
 import 'kaynak_onerisi.dart';
-import 'hoca_onerisi.dart'; // HocaOnerisiPage'i buraya import ediyoruz // KaynakOnerisiPage'i buraya import ediyoruz
+import 'hoca_onerisi.dart';
+import 'calculator.dart'; // YKS Puan Hesaplayıcı sayfasını import ediyoruz
 
 class HomePage extends StatelessWidget {
   final String userName;
@@ -25,12 +26,15 @@ class HomePage extends StatelessWidget {
       case 'Rehberlik':
         destinationPage = RehberlikPage(userName: userName);
         break;
-      case 'Kaynak Önerisi': // Kaynak Önerisi sayfasını ekliyoruz
+      case 'Kaynak Önerisi':
         destinationPage = const KaynakOnerisiPage();
         break;
       case 'Hoca Önerisi':
-         destinationPage = const HocaOnerisiPage();
-         break;
+        destinationPage = const HocaOnerisiPage();
+        break;
+      case 'YKS Puan Hesaplayıcı': // Yeni YKS Puan Hesaplayıcı sayfası
+        destinationPage = const YksCalculatorPage();
+        break;
       default:
         // Henüz hazır olmayan sayfalar için genel bir 'yakında' sayfası göster
         destinationPage = Scaffold(
@@ -68,33 +72,33 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     // Uygulama özellikleri ve ilgili ikonları
     final List<Map<String, dynamic>> features = [
-      {'label': 'Program Çıkar', 'icon': Icons.edit_calendar}, // Daha uygun bir ikon
+      {'label': 'Program Çıkar', 'icon': Icons.edit_calendar},
       {'label': 'Pomodoro', 'icon': Icons.timer},
-      {'label': 'Rehberlik', 'icon': Icons.assistant}, // Danışmanlık için
-      {'label': 'Kaynak Önerisi', 'icon': Icons.menu_book}, // Kitap için
-      {'label': 'Hoca Önerisi', 'icon': Icons.person_search}, // Öğretmen arama için
-      // {'label': 'Yeni Özellik', 'icon': Icons.stars}, // İhtiyaç olursa eklenebilir
+      {'label': 'Rehberlik', 'icon': Icons.assistant},
+      {'label': 'Kaynak Önerisi', 'icon': Icons.menu_book},
+      {'label': 'Hoca Önerisi', 'icon': Icons.person_search},
+      {'label': 'YKS Puan Hesaplayıcı', 'icon': Icons.calculate}, // Yeni özellik kartı
     ];
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // Gradyan için şeffaf olmalı
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFBBDEFB), // Daha Koyu Mavi
-              Color(0xFFE0F7FA), // Açık Mavi
+              Color(0xFFBBDEFB),
+              Color(0xFFE0F7FA),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-        child: SafeArea( // Kenar boşluklarını otomatik ayarlar (notch, durum çubuğu vb.)
+        child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, // Metni sola hizala
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 4), // Yukarıdan ve yandan boşluk
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -126,17 +130,17 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 24), // Özellik kartlarından önceki boşluk
+              const SizedBox(height: 24),
 
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0), // Yanlardan boşluk
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3, // Her satırda 2 kart
-                      crossAxisSpacing: 4.0, // Yatay boşluk
-                      mainAxisSpacing: 4.0, // Dikey boşluk
-                      childAspectRatio: 0.8, // Kartların genişlik/yükseklik oranı
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 4.0,
+                      mainAxisSpacing: 4.0,
+                      childAspectRatio: 0.8,
                     ),
                     itemCount: features.length,
                     itemBuilder: (context, index) {
@@ -171,40 +175,33 @@ class FeatureCard extends StatelessWidget {
     required this.onTap,
   });
 
-  
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 6, // Hafif gölge
+      elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18), // Yuvarlak köşeler
+        borderRadius: BorderRadius.circular(18),
       ),
-      clipBehavior: Clip.antiAlias, // İçeriği köşelere göre kırp
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        splashColor: Colors.blueAccent.withOpacity(0.3), // Tıklama efekti rengi
-        highlightColor: Colors.blueAccent.withOpacity(0.1), // Basılı tutma efekti rengi
+        splashColor: Colors.blueAccent.withOpacity(0.3),
+        highlightColor: Colors.blueAccent.withOpacity(0.1),
         child: Padding(
-          padding: const EdgeInsets.all(16.0), // Kartın iç boşluğu
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            // mainAxisAlignment'ı 'start' olarak değiştirerek içeriği yukarı hizaladım.
             mainAxisAlignment: MainAxisAlignment.start,
-            // crossAxisAlignment'ı 'center' yaparak ikon ve metni yatayda ortaladım.
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // İkona yukarıdan biraz boşluk ekledim, böylece tam tepeye yapışmaz.
               const SizedBox(height: 10),
               Icon(
                 icon,
-                size: 60, // İkon boyutu
+                size: 60,
                 color: Colors.blueAccent.shade700,
               ),
-              // İkon ile metin arasındaki boşluğu korudum.
               const SizedBox(height: 12),
-              // Metnin esnek bir şekilde kalan alanı doldurmasını sağladım.
-              // Bu sayede metin uzunluğu ne olursa olsun kartın alt kısmına doğru yayılabilir.
               Expanded(
-                child: Align( // Metni dikeyde üste hizaladım (Expanded içinde).
+                child: Align(
                   alignment: Alignment.topCenter,
                   child: Text(
                     label,
@@ -214,8 +211,8 @@ class FeatureCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: Colors.blueGrey,
                     ),
-                    maxLines: 2, // Uzun etiketler için metni iki satırla sınırladım.
-                    overflow: TextOverflow.ellipsis, // Taşarsa ... göster
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
