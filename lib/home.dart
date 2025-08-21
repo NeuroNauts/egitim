@@ -5,6 +5,7 @@ import 'rehberlik.dart'; // RehberlikPage'inizin burada olduğunu varsayıyorum
 import 'kaynak_onerisi.dart';
 import 'hoca_onerisi.dart';
 import 'calculator.dart'; // YKS Puan Hesaplayıcı sayfasını import ediyoruz
+import 'tercih.dart'; // Yeni Tercih Robotu sayfasını import ediyoruz
 
 class HomePage extends StatelessWidget {
   final String userName;
@@ -32,8 +33,13 @@ class HomePage extends StatelessWidget {
       case 'Hoca Önerisi':
         destinationPage = const HocaOnerisiPage();
         break;
-      case 'YKS Puan Hesaplayıcı': // Yeni YKS Puan Hesaplayıcı sayfası
+      case 'YKS Puan Hesaplayıcı':
         destinationPage = const YksCalculatorPage();
+        break;
+      case 'Tercih Robotu': // Yeni Tercih Robotu butonu için yönlendirme
+        // Puan ve puan türü bilgisi olmadan Tercih sayfasına geçiş
+        // Kullanıcı bu sayfada filtreleri manuel olarak seçecektir.
+        destinationPage = const TercihPage(userRank: 0, userPuanTuru: 'Sayısal'); // Varsayılan değerler
         break;
       default:
         // Henüz hazır olmayan sayfalar için genel bir 'yakında' sayfası göster
@@ -77,7 +83,8 @@ class HomePage extends StatelessWidget {
       {'label': 'Rehberlik', 'icon': Icons.assistant},
       {'label': 'Kaynak Önerisi', 'icon': Icons.menu_book},
       {'label': 'Hoca Önerisi', 'icon': Icons.person_search},
-      {'label': 'YKS Puan Hesaplayıcı', 'icon': Icons.calculate}, // Yeni özellik kartı
+      {'label': 'YKS Puan Hesaplayıcı', 'icon': Icons.calculate},
+      {'label': 'Tercih Robotu', 'icon': Icons.school}, // Yeni özellik kartı
     ];
 
     return Scaffold(
